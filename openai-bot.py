@@ -44,7 +44,7 @@ current_speech_language = 'ru_RU'
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("/text to use text neuralink or /image to generate images"
+    await update.message.reply_text("/text to use text neuralink or /image to generate images\n"
                                     f"Current language {current_speech_language}, /switch to change")
     return ConversationHandler.END
 
