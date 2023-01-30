@@ -46,7 +46,7 @@ current_speech_language = 'ru_RU'
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if current_speech_language == 'ru_RU':
         await update.message.reply_text("/text для ввода текста или /image для создания изображений при помощи "
-                                        "нейросети\n "
+                                        "нейросети\n"
                                         f"Выбранный язык Русский, /switch чтобы изменить")
     else:
         await update.message.reply_text("/text to use text neuralink or /image to generate images\n"
