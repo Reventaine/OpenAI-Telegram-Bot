@@ -5,6 +5,7 @@ from PIL import Image
 import logging
 import time
 from config import openaiToken as openaiToken
+from config import telegramToken as telegramToken
 from telegram import Update
 
 from telegram.ext import (
@@ -205,7 +206,7 @@ async def change_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 if __name__ == '__main__':
-    application = Application.builder().token("5560967942:AAGgMQFSrXJBOwZCvV01g_3uhad2pjGlMoI").build()
+    application = Application.builder().token(telegramToken).build()
 
     conv_handler = ConversationHandler(
         entry_points=[
