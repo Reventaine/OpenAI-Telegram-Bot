@@ -1,12 +1,11 @@
 import openai
 import subprocess
-import speech_recognition as sr
 from PIL import Image
 import logging
 import time
-from config import openaiToken as openaiToken
-from config import telegramToken as telegramToken
+from config import openaiToken as openaiToken, telegramOpenAI as telegramOpenAI
 from telegram import Update
+# import speech_recognition as sr
 
 from telegram.ext import (
     Application,
@@ -40,7 +39,7 @@ IMAGE, CHAT = range(2)
 
 openai.api_key = openaiToken
 
-current_speech_language = 'ru_RU'
+current_speech_language = 'en_EN'
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,7 +55,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if current_speech_language == 'en_EN':
-        await update.message.reply_text("/text to use text neuralink Chat-GPT3, which can complete text or provide a "
+        await update.message.reply_text("/chat to start a conversation with neuralink Chat-GPT3, which can complete "
+                                        "text or provide a "
                                         "dialog, works in different languages \n/image to generate images from "
                                         "text. You can ask neuralink via VoiceMessage, /switch to change language."
                                         "\nUpload a photo without any commands to alternate this photo."
@@ -66,7 +66,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                                         "\nWithout a caption provided there will be a full alternate image by neuralink"
                                         )
     else:
-        await update.message.reply_text("/text для использования текстовой нейросети Chat-GPT3, которая может "
+        await update.message.reply_text("/chat для использования текстовой нейросети Chat-GPT3, которая может "
                                         "завершить текст или предоставить диалог\n/image "
                                         "для создания изображений из текста. Вы можете попросить нейросеть при помощи "
                                         "VoiceMessage, /switch чтобы изменить язык. \nЗагрузить фотографию без "
@@ -95,18 +95,28 @@ async def speech_to_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     subprocess.call(['ffmpeg', '-i', 'speech.mp3',
                      'speech.wav', '-y'])
 
-    r = sr.Recognizer()
+    audio_file = open("speech.wav", "rb")
+    transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
+    """r = sr.Recognizer()
     with sr.AudioFile('speech.wav') as source:
         audio_data = r.record(source)
-        prompt = r.recognize_google(audio_data, language=current_speech_language)
+        prompt = r.recognize_google(audio_data, language=current_speech_language)"""
 
-    return prompt
+    return transcript['text']
 
 
 async def text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Enter a request or /image to generate images")
+    await update.message.reply_text("Starting conversation!")
     return CHAT
+
+
+async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    return CHAT
+
+
+messages = [{"role": "system", "content": "You witty and knowledgeable assistant fluent in Russian,"
+                                          "English. You sharing scientific information and glad to crack a joke."}]
 
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -115,26 +125,36 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         prompt = await speech_to_text(update, context)
 
+    messages.append({"role": "user", "content": f'username {update.effective_user.name}'
+                                                f' message {prompt}'})
+
     try:
         msg = await update.message.reply_text(f"Building an answer...")
         msg
 
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=prompt,
-            temperature=0.7,
-            max_tokens=3700,
-            top_p=1.0,
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=1.2,
+            max_tokens=600,
             frequency_penalty=0.0,
-            presence_penalty=0.0,
+            presence_penalty=0.8,
         )
 
-        await msg.edit_text(text=response['choices'][0]['text'])
-        time.sleep(1)
-        return await start(update, context)
+        answer = response['choices'][0]['message']['content']
+        await msg.edit_text(text=answer)
+        messages.append({"role": "assistant", "content": answer})
+        print(answer)
+        print(response["usage"])
+
+        if response["usage"]["prompt_tokens"] > 1950:
+            await update.message.reply_text("Sorry but I run out of memory! Reloading...")
+            return await text(update, context)
+        return await message(update, context)
 
     except:
         await update.message.reply_text(text="Error, please try again")
+        return await text(update, context)
 
 
 async def image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -211,14 +231,14 @@ async def change_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 if __name__ == '__main__':
-    application = Application.builder().token(telegramToken).build()
+    application = Application.builder().token("TOKEN").build()
 
     conv_handler = ConversationHandler(
         entry_points=[
-            CommandHandler("text", text),
+            CommandHandler("chat", text),
             CommandHandler('image', image),
             MessageHandler(filters.PHOTO, change_image),
-            MessageHandler(filters.VOICE, chat)
+            MessageHandler(filters.VOICE, chat),
         ],
         states={
             CHAT: [
