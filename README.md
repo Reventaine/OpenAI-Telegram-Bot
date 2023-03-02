@@ -7,3 +7,5 @@ Upload a photo without any commands to alternate this photo. The photo must be s
 Without a caption provided there will be a full alternate image by neuralink.<br><br>
 
 <a href="https://t.me/RandPicGif_bot">Try it out</a>
+
+## Update 02.03.23: New model GPT3-Turbo and contextual dialog.
