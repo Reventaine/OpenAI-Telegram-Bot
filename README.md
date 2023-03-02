@@ -8,4 +8,10 @@ Without a caption provided there will be a full alternate image by neuralink.<br
 
 <a href="https://t.me/RandPicGif_bot">Try it out</a>
 
+![Screenshot 2023-03-02 200927](https://user-images.githubusercontent.com/56644580/222485326-b4156ab6-0c96-441d-b6e7-0f0ffd9e418b.jpg)
+
 ## Update 02.03.23: New model GPT3-Turbo and contextual dialog.
+
+The bot now remembers the conversation and responds more logically and contextually thanks to the gpt3-turbo model.
+
+![Screenshot 2023-03-02 201110](https://user-images.githubusercontent.com/56644580/222485361-6e12958e-6422-4c9f-946c-a3c3bcec74f4.jpg)
