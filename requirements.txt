@@ -1,4 +1,4 @@
 python-telegram-bot==20.0a2
-openai==0.26.3
+openai==0.27.0
 Pillow==9.4.0
 SpeechRecognition==3.9.0
