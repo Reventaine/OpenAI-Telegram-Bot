@@ -42,11 +42,11 @@ current_speech_language = 'en_EN'
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if current_speech_language == 'ru_RU':
-        await update.message.reply_text("/text для ввода текста или /image для создания изображений при помощи "
+        await update.message.reply_text("/chat для начала беседы или /image для создания изображений при помощи "
                                         "нейросети\n"
                                         f"Выбранный язык Русский, /switch чтобы изменить")
     else:
-        await update.message.reply_text("/text to use text neuralink or /image to generate images\n"
+        await update.message.reply_text("/chat to start a conversation with neuralink or /image to generate images\n"
                                         f"Current language is English, /switch to change")
     return ConversationHandler.END
 
@@ -92,21 +92,26 @@ if __name__ == '__main__':
 
     conv_handler = ConversationHandler(
         entry_points=[
-            CommandHandler("chat", text),
+            CommandHandler("chat", chat_start),
             CommandHandler('image', image),
+            CommandHandler('transcribe', transcribe),
             MessageHandler(filters.PHOTO, change_image),
-            MessageHandler(filters.VOICE, chat),
         ],
         states={
             CHAT: [
-                MessageHandler(filters.TEXT & (~ filters.COMMAND) & (~ filters.Regex('Image')), chat)
+                MessageHandler(filters.TEXT & (~ filters.COMMAND) & (~ filters.Regex('Image')), chat),
+                MessageHandler(filters.VOICE, chat),
             ],
             IMAGE: [
                 MessageHandler(filters.Regex("Image"), image),
                 MessageHandler(filters.TEXT & (~ filters.COMMAND) & (~ filters.Regex('Image')), get_image)
             ],
+            SCRIBE: [
+                MessageHandler(filters.VOICE, scribe),
+            ]
         },
-        fallbacks=[CommandHandler("text", text), CommandHandler("image", image)], allow_reentry=True,
+        fallbacks=[CommandHandler("text", chat_start), CommandHandler("image", image), CommandHandler('start', start)]
+        , allow_reentry=True,
     )
 
     application.add_handler(CommandHandler('start', start))

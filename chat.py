@@ -5,14 +5,13 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 
-IMAGE, CHAT = range(2)
+IMAGE, CHAT, SCRIBE = range(3)
 
 
-async def text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def chat_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     messages[update.effective_user.name] = [{"role": "system",
-                                            "content": "You witty and knowledgeable assistant fluent in Russian,"
-                                                       "English. You sharing scientific information and glad to "
-                                                       "crack a joke."}]
+                                            "content": "You witty and knowledgeable assistant. You always glad to "
+                                                       "tell jokes."}]
     await update.message.reply_text("Starting conversation!")
     return CHAT
 
@@ -35,7 +34,7 @@ messages = {}
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.name not in messages.keys():
-        await text(update, context)
+        await chat_start(update, context)
 
     if update.message.text is not None:
         prompt = update.message.text
@@ -46,15 +45,15 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                                                                             f' message {prompt}'})
 
     try:
-        msg = await update.message.reply_text(f"Building an answer...")
+        msg = await update.message.reply_text(f"Answering...")
 
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages[update.effective_user.name],
-            temperature=1.4,
+            temperature=0.8,
             max_tokens=600,
-            frequency_penalty=0.2,
-            presence_penalty=0.4,
+            frequency_penalty=0.0,
+            presence_penalty=0.2,
         )
 
         answer = response['choices'][0]['message']['content']
@@ -64,9 +63,28 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         print(len(messages[update.effective_user.name]))
 
         if response["usage"]["total_tokens"] > 3400:
-            del messages[update.effective_user.name][:10]
+            del messages[update.effective_user.name][:5]
         return CHAT
 
     except:
-        await update.message.reply_text(text="Error, please try again")
+        await update.message.reply_text(text="Please try again")
         return CHAT
+
+
+async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text('Redirect or record voice to transcribe')
+    return SCRIBE
+
+
+async def scribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    speech = await context.bot.get_file(update.message.voice.file_id)
+    await speech.download('speech.mp3')
+
+    subprocess.call(['ffmpeg', '-i', 'speech.mp3',
+                     'speech.wav', '-y'])
+
+    audio_file = open("speech.wav", "rb")
+    transcript = openai.Audio.transcribe("whisper-1", audio_file)
+
+    await update.message.reply_text(transcript['text'])
+    return transcribe(update, context)
