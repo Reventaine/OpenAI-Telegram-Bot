@@ -44,9 +44,9 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     messages[update.effective_user.name].append({"role": "user", "content": f'username {update.effective_user.name}'
                                                                             f' message {prompt}'})
 
-    try:
-        msg = await update.message.reply_text(f"Answering...")
+    msg = await update.message.reply_text(f"Answering...")
 
+    try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages[update.effective_user.name],
@@ -67,7 +67,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return CHAT
 
     except:
-        await update.message.reply_text(text="Please try again")
+        await msg.edit_text(text="Error, please try again")
         return CHAT
 
 
@@ -77,14 +77,19 @@ async def transcribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 async def scribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    speech = await context.bot.get_file(update.message.voice.file_id)
-    await speech.download('speech.mp3')
+    msg = await update.message.reply_text('Transcribing...')
+    try:
+        speech = await context.bot.get_file(update.message.voice.file_id)
+        await speech.download('speech.mp3')
 
-    subprocess.call(['ffmpeg', '-i', 'speech.mp3',
-                     'speech.wav', '-y'])
+        subprocess.call(['ffmpeg', '-i', 'speech.mp3',
+                         'speech.wav', '-y'])
 
-    audio_file = open("speech.wav", "rb")
-    transcript = openai.Audio.transcribe("whisper-1", audio_file)
+        audio_file = open("speech.wav", "rb")
+        transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
-    await update.message.reply_text(transcript['text'])
+        await msg.edit_text(transcript['text'])
+
+    except:
+        await msg.edit_text('Error, please try again')
     return transcribe(update, context)
